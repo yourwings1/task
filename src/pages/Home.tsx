@@ -26,52 +26,31 @@ const Home: FC = observer(() => {
 				</Title>
 			}
 		>
-			<Split
-				sizes={selectedTask ? [60, 40] : [100, 0]}
-				minSize={300}
-				expandToMin={false}
-				gutterSize={6}
-				snapOffset={0}
-				direction="horizontal"
-				style={{ display: "flex", height: "calc(100vh - 64px)" }}
-			>
-				<div style={{ overflow: "auto" }}>
-					{selected ? (
-						<TaskBoard onTaskClick={setSelectedTask} />
-					) : (
-						<div
-							style={{
-								padding: 48,
-								textAlign: "center",
-								color: "#999",
-							}}
-						>
-							<Empty
-								description="Слева выберите или создайте проект"
-								imageStyle={{ height: 120 }}
-							/>
-						</div>
-					)}
-				</div>
-
-				{selectedTask ? (
+			<div style={{ overflow: "auto" }}>
+				{selected ? (
+					<TaskBoard onTaskClick={setSelectedTask} />
+				) : (
 					<div
 						style={{
-							background: "#fff",
-							borderLeft: "1px solid #eee",
-							boxShadow: "-6px 0 20px rgba(0,0,0,0.1)",
-							overflowY: "auto",
+							padding: 48,
+							textAlign: "center",
+							color: "#999",
 						}}
 					>
-						<TaskDetailPanel
-							task={selectedTask}
-							onClose={() => setSelectedTask(null)}
+						<Empty
+							description="Слева выберите или создайте проект"
+							imageStyle={{ height: 120 }}
 						/>
 					</div>
-				) : (
-					<div />
 				)}
-			</Split>
+			</div>
+
+			{selectedTask && (
+				<TaskDetailPanel
+					task={selectedTask}
+					onClose={() => setSelectedTask(null)}
+				/>
+			)}
 		</PageLayout>
 	);
 });

@@ -367,24 +367,6 @@ const PageLayout: FC<PageLayoutProps> = observer(
 							<div style={{ height: "100%" }}>{children}</div>
 						</Content>
 					</Layout>
-
-					{/* {selectedTask && onCloseTaskPanel && (
-						<div
-							style={{ width: 500, borderLeft: "1px solid #ccc" }}
-						>
-							<TaskDetailPanel
-								task={selectedTask}
-								onClose={onCloseTaskPanel}
-							/>
-						</div>
-					)} */}
-
-					{selectedTask && onCloseTaskPanel && (
-						<TaskDetailPanel
-							task={selectedTask}
-							onClose={onCloseTaskPanel}
-						/>
-					)}
 				</Layout>
 			</Layout>
 		);
