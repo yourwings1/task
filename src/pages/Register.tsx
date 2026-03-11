@@ -18,14 +18,14 @@ import { getFirebaseAuthErrorMessage } from "../shared/firebaseErrorMessage";
 
 const { Title, Text } = Typography;
 
-const Login: FC = observer(() => {
+const Register: FC = observer(() => {
 	const navigate = useNavigate();
 	const [api, contextHolder] = message.useMessage();
 
 	const onFinish = async () => {
 		try {
-			await loginStore.login();
-			api.success("Вы успешно вошли");
+			await loginStore.register();
+			api.success("Аккаунт создан");
 			navigate("/");
 		} catch (e) {
 			api.error(getFirebaseAuthErrorMessage(e));
@@ -52,28 +52,12 @@ const Login: FC = observer(() => {
 							style={{ width: 400 }}
 							styles={{ body: { padding: 25 } }}
 						>
-							<div
-								style={{
-									marginBottom: 24,
-									display: "flex",
-									alignItems: "baseline",
-									justifyContent: "space-between",
-								}}
+							<Title
+								level={4}
+								style={{ marginTop: 0 }}
 							>
-								<Title
-									level={4}
-									style={{ margin: 0 }}
-								>
-									Вход
-								</Title>
-
-								<Link
-									to="/forgot"
-									style={{ fontSize: 14, fontWeight: 400 }}
-								>
-									Забыли пароль?
-								</Link>
-							</div>
+								Регистрация
+							</Title>
 
 							<Form
 								layout="vertical"
@@ -111,6 +95,10 @@ const Login: FC = observer(() => {
 											required: true,
 											message: "Введите пароль!",
 										},
+										{
+											min: 6,
+											message: "Минимум 6 символов",
+										},
 									]}
 								>
 									<Input.Password
@@ -134,22 +122,14 @@ const Login: FC = observer(() => {
 										size="large"
 										loading={loginStore.isLoading}
 									>
-										Войти
+										Создать аккаунт
 									</Button>
 								</Form.Item>
 							</Form>
 
-							<Space
-								direction="vertical"
-								size={0}
-								style={{ width: "100%", textAlign: "center" }}
-							>
-								<Text type="secondary">
-									У вас ещё нет аккаунта?
-								</Text>
-
-								<Link to="/register">Зарегистрируйтесь</Link>
-							</Space>
+							<Text type="secondary">
+								Уже есть аккаунт? <Link to="/login">Войти</Link>
+							</Text>
 						</Card>
 					</Space>
 				</div>
@@ -158,4 +138,4 @@ const Login: FC = observer(() => {
 	);
 });
 
-export default Login;
+export default Register;

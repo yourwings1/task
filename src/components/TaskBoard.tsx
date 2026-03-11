@@ -2,10 +2,10 @@ import { Input, Card, Empty } from "antd";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
 import taskStore, { type ColumnType, type Task } from "../store/TaskStore";
 import projectStore from "../store/ProjectStore";
 
-// Пропсы
 interface TaskBoardProps {
 	onTaskClick?: (task: Task) => void;
 }
@@ -27,7 +27,7 @@ const TaskBoard = observer(({ onTaskClick }: TaskBoardProps) => {
 			source.droppableId as ColumnType,
 			destination.droppableId as ColumnType,
 			source.index,
-			destination.index
+			destination.index,
 		);
 	};
 
@@ -64,11 +64,13 @@ const TaskBoard = observer(({ onTaskClick }: TaskBoardProps) => {
 							flexDirection: "column",
 							maxHeight: "calc(100vh - 160px)",
 						}}
-						bodyStyle={{
-							flex: 1,
-							display: "flex",
-							flexDirection: "column",
-							overflow: "hidden",
+						styles={{
+							body: {
+								flex: 1,
+								display: "flex",
+								flexDirection: "column",
+								overflow: "hidden",
+							},
 						}}
 					>
 						{key === "open" && (
@@ -76,7 +78,7 @@ const TaskBoard = observer(({ onTaskClick }: TaskBoardProps) => {
 								placeholder="Новая задача"
 								value={taskStore.newTaskTitle}
 								onChange={(e) =>
-									(taskStore.newTaskTitle = e.target.value)
+									taskStore.setNewTaskTitle(e.target.value)
 								}
 								onPressEnter={() =>
 									taskStore.addTask(key as ColumnType)

@@ -1,0 +1,415 @@
+{
+	"openapi": "3.0.1",
+	"info": {
+		"title": "taskhub-backend",
+		"version": "1.0"
+	},
+	"paths": {
+		"/api/Task": {
+			"get": {
+				"tags": ["Task"],
+				"parameters": [
+					{
+						"name": "Title",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "Description",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "Status",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "TaskExecutorName",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "CreatedDateStart",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "CreatedDateFinish",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "UpdatedDateStart",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "UpdatedDateFinish",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "AuthorName",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "TypeSourceTask",
+						"in": "query",
+						"schema": {
+							"$ref": "#/components/schemas/TypeTask"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"text/plain": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskDto"
+									}
+								}
+							},
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskDto"
+									}
+								}
+							},
+							"text/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskDto"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/Task/{id}": {
+			"get": {
+				"tags": ["Task"],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"text/plain": {
+								"schema": {
+									"$ref": "#/components/schemas/TaskDto"
+								}
+							},
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TaskDto"
+								}
+							},
+							"text/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TaskDto"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/TaskUpdate": {
+			"get": {
+				"tags": ["TaskUpdate"],
+				"parameters": [
+					{
+						"name": "DateStart",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "DateFinish",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"text/plain": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskUpdateChangedDto"
+									}
+								}
+							},
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskUpdateChangedDto"
+									}
+								}
+							},
+							"text/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/TaskUpdateChangedDto"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/Authenticate": {
+			"post": {
+				"tags": ["User"],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserAuthenticationDto"
+							}
+						},
+						"text/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserAuthenticationDto"
+							}
+						},
+						"application/*+json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserAuthenticationDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		},
+		"/api/Registration": {
+			"post": {
+				"tags": ["User"],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserRegistrationDto"
+							}
+						},
+						"text/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserRegistrationDto"
+							}
+						},
+						"application/*+json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserRegistrationDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"TaskDto": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"nullable": true
+					},
+					"title": {
+						"type": "string",
+						"nullable": true
+					},
+					"description": {
+						"type": "string",
+						"nullable": true
+					},
+					"status": {
+						"type": "string",
+						"nullable": true
+					},
+					"taskExecutorName": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdDate": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedDate": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"authorName": {
+						"type": "string",
+						"nullable": true
+					},
+					"typeSourceTask": {
+						"$ref": "#/components/schemas/TypeTask"
+					}
+				},
+				"additionalProperties": false
+			},
+			"TaskUpdateChangedDto": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"idTask": {
+						"type": "string",
+						"nullable": true
+					},
+					"oldTitle": {
+						"type": "string",
+						"nullable": true
+					},
+					"newTitle": {
+						"type": "string",
+						"nullable": true
+					},
+					"oldDescription": {
+						"type": "string",
+						"nullable": true
+					},
+					"newDescription": {
+						"type": "string",
+						"nullable": true
+					},
+					"oldStatus": {
+						"type": "string",
+						"nullable": true
+					},
+					"newStatus": {
+						"type": "string",
+						"nullable": true
+					},
+					"oldTaskExecutorName": {
+						"type": "string",
+						"nullable": true
+					},
+					"newTaskExecutorName": {
+						"type": "string",
+						"nullable": true
+					},
+					"oldUpdatedDate": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"newUpdatedDate": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"additionalProperties": false
+			},
+			"TypeTask": {
+				"enum": ["GitLab", "Redmine"],
+				"type": "string"
+			},
+			"UserAuthenticationDto": {
+				"type": "object",
+				"properties": {
+					"username": {
+						"type": "string",
+						"nullable": true
+					},
+					"password": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"additionalProperties": false
+			},
+			"UserRegistrationDto": {
+				"type": "object",
+				"properties": {
+					"firstName": {
+						"type": "string",
+						"nullable": true
+					},
+					"secondName": {
+						"type": "string",
+						"nullable": true
+					},
+					"userName": {
+						"type": "string",
+						"nullable": true
+					},
+					"email": {
+						"type": "string",
+						"nullable": true
+					},
+					"password": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	}
+}

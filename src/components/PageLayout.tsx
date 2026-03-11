@@ -9,10 +9,9 @@ import {
 	Typography,
 	theme,
 	Input,
-	Tooltip,
 } from "antd";
 import { useNavigate } from "react-router-dom";
-import { useState, type FC } from "react";
+import { useState, type FC, type ReactNode } from "react";
 import { observer } from "mobx-react-lite";
 import loginStore from "../store/LoginStore";
 import Logo from "./Logo";
@@ -24,48 +23,79 @@ import {
 	ListTodo,
 	Logs,
 	Plus,
+	FolderOpen,
 } from "lucide-react";
 import {
 	SettingOutlined,
 	LogoutOutlined,
 	MoonOutlined,
 } from "@ant-design/icons";
-import TaskDetailPanel from "./TaskDetailPanel";
-import type { Task } from "../store/TaskStore";
 
 const { Header, Sider, Content } = Layout;
 
-// ✅ Интерфейс пропсов
 interface PageLayoutProps {
-	headerLeft?: React.ReactNode;
-	children: React.ReactNode;
-	selectedTask?: Task | null;
-	onCloseTaskPanel?: () => void;
+	headerLeft?: ReactNode;
+	children: ReactNode;
+	activeMenuKey?: string;
+	onMenuSelect?: (key: string) => void;
 }
 
 const PageLayout: FC<PageLayoutProps> = observer(
-	({ headerLeft, children, selectedTask, onCloseTaskPanel }) => {
+	({ headerLeft, children, activeMenuKey = "all-tasks", onMenuSelect }) => {
 		const navigate = useNavigate();
 		const { token } = theme.useToken();
+
 		const [collapsed, setCollapsed] = useState(false);
 		const [newProject, setNewProject] = useState("");
 		const [showProjectInput, setShowProjectInput] = useState(false);
 
-		const handleLogout = () => {
-			loginStore.logout();
+		const handleLogout = async () => {
+			await loginStore.logout();
 			navigate("/login");
 		};
 
 		const getInitials = (name: string): string => {
-			const parts = name.trim().split(" ");
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+			const parts = name.trim().split(" ").filter(Boolean);
+
+			if (parts.length === 0) return "П";
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase();
+			}
+
 			return (
 				parts[0].charAt(0).toUpperCase() +
 				parts[1].charAt(0).toUpperCase()
 			);
 		};
 
-		const username = loginStore.username || "Пользователь";
+		const username =
+			loginStore.user?.email || loginStore.email || "Пользователь";
+
+		const topMenuItems = [
+			{
+				key: "all-tasks",
+				icon: <Logs size={16} />,
+				label: "Все задачи",
+			},
+			{
+				key: "my-tasks",
+				icon: <ListTodo size={16} />,
+				label: "Мои задачи",
+			},
+			{
+				key: "all-projects",
+				icon: <FolderOpen size={16} />,
+				label: "Все проекты",
+			},
+		];
+
+		const projectMenuItems = projectStore.projects
+			.filter((proj) => proj && proj.trim())
+			.map((proj) => ({
+				key: proj,
+				icon: <Folder size={16} />,
+				label: proj,
+			}));
 
 		return (
 			<Layout style={{ height: "100vh" }}>
@@ -96,41 +126,11 @@ const PageLayout: FC<PageLayoutProps> = observer(
 
 					<Menu
 						mode="inline"
+						selectedKeys={[activeMenuKey]}
+						onClick={({ key }) => onMenuSelect?.(key)}
 						style={{ border: "none" }}
-					>
-						{[
-							{
-								key: "all-tasks",
-								icon: <Logs />,
-								label: "Все задачи",
-							},
-							{
-								key: "my-tasks",
-								icon: <ListTodo />,
-								label: "Мои задачи",
-							},
-						].map((item) => {
-							const content = (
-								<Menu.Item
-									key={item.key}
-									icon={item.icon}
-								>
-									{!collapsed && item.label}
-								</Menu.Item>
-							);
-							return collapsed ? (
-								<Tooltip
-									title={item.label}
-									placement="right"
-									key={item.key}
-								>
-									{content}
-								</Tooltip>
-							) : (
-								content
-							);
-						})}
-					</Menu>
+						items={topMenuItems}
+					/>
 
 					{!collapsed && (
 						<div
@@ -160,10 +160,11 @@ const PageLayout: FC<PageLayoutProps> = observer(
 								placeholder="Новый проект"
 								value={newProject}
 								onChange={(e) => setNewProject(e.target.value)}
-								onPressEnter={() => {
+								onPressEnter={async () => {
 									const value = newProject.trim();
+
 									if (value) {
-										projectStore.addProject(value);
+										await projectStore.addProject(value);
 										setNewProject("");
 										setShowProjectInput(false);
 									}
@@ -176,36 +177,26 @@ const PageLayout: FC<PageLayoutProps> = observer(
 
 					<Menu
 						mode="inline"
-						selectedKeys={[projectStore.selectedProject]}
-						onClick={({ key }) => projectStore.selectProject(key)}
+						selectedKeys={
+							projectStore.selectedProject
+								? [projectStore.selectedProject]
+								: []
+						}
+						onClick={({ key }) => {
+							projectStore.selectProject(key);
+							onMenuSelect?.("all-tasks");
+						}}
 						style={{ border: "none" }}
-					>
-						{projectStore.projects.map((proj) => {
-							const content = (
-								<Menu.Item
-									key={proj}
-									icon={<Folder size={16} />}
-								>
-									{!collapsed && proj}
-								</Menu.Item>
-							);
-							return collapsed ? (
-								<Tooltip
-									title={proj}
-									placement="right"
-									key={proj}
-								>
-									{content}
-								</Tooltip>
-							) : (
-								content
-							);
-						})}
-					</Menu>
+						items={projectMenuItems}
+					/>
 				</Sider>
 
 				<Layout
-					style={{ display: "flex", flexDirection: "row", flex: 1 }}
+					style={{
+						display: "flex",
+						flexDirection: "row",
+						flex: 1,
+					}}
 				>
 					<Layout
 						style={{
@@ -249,8 +240,7 @@ const PageLayout: FC<PageLayoutProps> = observer(
 							<Dropdown
 								trigger={["hover"]}
 								placement="bottomRight"
-								overlayStyle={{ width: 240 }}
-								dropdownRender={() => (
+								popupRender={() => (
 									<div
 										style={{
 											background: "#fff",
@@ -258,6 +248,7 @@ const PageLayout: FC<PageLayoutProps> = observer(
 											boxShadow:
 												"0 4px 12px rgba(0,0,0,0.15)",
 											padding: 16,
+											width: 240,
 										}}
 									>
 										<Space
@@ -280,10 +271,12 @@ const PageLayout: FC<PageLayoutProps> = observer(
 												>
 													{getInitials(username)}
 												</Avatar>
+
 												<Typography.Text strong>
 													{username}
 												</Typography.Text>
 											</div>
+
 											<div style={{ marginTop: 12 }}>
 												<Space
 													direction="vertical"
@@ -303,6 +296,7 @@ const PageLayout: FC<PageLayoutProps> = observer(
 															Настройки аккаунта
 														</Typography.Text>
 													</div>
+
 													<div
 														style={{
 															display: "flex",
@@ -320,11 +314,12 @@ const PageLayout: FC<PageLayoutProps> = observer(
 																gap: 8,
 															}}
 														>
-															<MoonOutlined />{" "}
+															<MoonOutlined />
 															Тёмная тема
 														</span>
 														<Switch size="small" />
 													</div>
+
 													<div
 														onClick={handleLogout}
 														style={{
@@ -336,7 +331,8 @@ const PageLayout: FC<PageLayoutProps> = observer(
 															gap: 8,
 														}}
 													>
-														<LogoutOutlined /> Выход
+														<LogoutOutlined />
+														Выход
 													</div>
 												</Space>
 											</div>
@@ -359,7 +355,6 @@ const PageLayout: FC<PageLayoutProps> = observer(
 							style={{
 								flex: 1,
 								minHeight: 0,
-								overflow: "auto",
 								padding: 24,
 								background: "#f5f5f5",
 							}}
@@ -370,7 +365,7 @@ const PageLayout: FC<PageLayoutProps> = observer(
 				</Layout>
 			</Layout>
 		);
-	}
+	},
 );
 
 export default PageLayout;
