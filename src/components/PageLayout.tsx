@@ -38,10 +38,16 @@ interface PageLayoutProps {
 	children: ReactNode;
 	activeMenuKey?: string;
 	onMenuSelect?: (key: string) => void;
+	onProjectClick?: (projectName: string) => void;
 }
 
 const PageLayout: FC<PageLayoutProps> = observer(
-	({ headerLeft, children, activeMenuKey = "all-tasks", onMenuSelect }) => {
+	({
+		headerLeft,
+		children,
+		activeMenuKey = "all-tasks",
+		onMenuSelect,
+	}) => {
 		const navigate = useNavigate();
 		const { token } = theme.useToken();
 
@@ -118,16 +124,13 @@ const PageLayout: FC<PageLayoutProps> = observer(
 							borderBottom: "1px solid lightgray",
 						}}
 					>
-						<Logo
-							collapsed={collapsed}
-							style={{ fontSize: 20 }}
-						/>
+						<Logo collapsed={collapsed} style={{ fontSize: 20 }} />
 					</div>
 
 					<Menu
 						mode="inline"
 						selectedKeys={[activeMenuKey]}
-						onClick={({ key }) => onMenuSelect?.(key)}
+						onClick={({ key }) => onMenuSelect?.(String(key))}
 						style={{ border: "none" }}
 						items={topMenuItems}
 					/>
@@ -176,19 +179,20 @@ const PageLayout: FC<PageLayoutProps> = observer(
 					)}
 
 					<Menu
-						mode="inline"
-						selectedKeys={
-							projectStore.selectedProject
-								? [projectStore.selectedProject]
-								: []
-						}
-						onClick={({ key }) => {
-							projectStore.selectProject(key);
-							onMenuSelect?.("all-tasks");
-						}}
-						style={{ border: "none" }}
-						items={projectMenuItems}
-					/>
+	mode="inline"
+	selectedKeys={
+		projectStore.selectedProject
+			? [projectStore.selectedProject]
+			: []
+	}
+	onClick={({ key }) => {
+		const projectName = String(key);
+		projectStore.selectProject(projectName);
+		onMenuSelect?.("all-tasks");
+	}}
+	style={{ border: "none" }}
+	items={projectMenuItems}
+/>
 				</Sider>
 
 				<Layout

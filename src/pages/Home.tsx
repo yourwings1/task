@@ -1,156 +1,84 @@
-import { Input, Card, Empty } from "antd";
+import { Card, Empty, Typography } from "antd";
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import taskStore, { type ColumnType, type Task } from "../store/TaskStore";
+import { useState } from "react";
+import type { Task } from "../store/TaskStore";
 import projectStore from "../store/ProjectStore";
+import PageLayout from "../components/PageLayout";
+import TaskBoard from "../components/TaskBoard";
+import TaskDetailPanel from "../components/TaskDetailPanel";
+import ProjectDetailPanel from "../components/ProjectDetailPanel";
 
-// Пропсы
-interface TaskBoardProps {
-	onTaskClick?: (task: Task) => void;
-}
+const Home = observer(() => {
+	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+	const [selectedProjectPanel, setSelectedProjectPanel] = useState<string | null>(null);
+	const [activeMenuKey, setActiveMenuKey] = useState("all-tasks");
 
-const TaskBoard = observer(({ onTaskClick }: TaskBoardProps) => {
-	const selectedProject = projectStore.selectedProject;
+	const closeTaskPanel = () => setSelectedTask(null);
+	const closeProjectPanel = () => setSelectedProjectPanel(null);
 
-	useEffect(() => {
-		if (selectedProject) {
-			taskStore.initProject(selectedProject);
+	const renderProjectsView = () => {
+		if (!projectStore.projects.length) {
+			return <Empty description="Проектов пока нет" />;
 		}
-	}, [selectedProject]);
 
-	const onDragEnd = (result: any) => {
-		const { source, destination } = result;
-		if (!destination) return;
+		return (
+			<div>
+				<Typography.Title level={4}>Все проекты</Typography.Title>
 
-		taskStore.moveTask(
-			source.droppableId as ColumnType,
-			destination.droppableId as ColumnType,
-			source.index,
-			destination.index,
+				<div style={{ display: "grid", gap: 12 }}>
+					{projectStore.projects.map((project) => (
+						<Card
+							key={project}
+							hoverable
+							style={{ cursor: "pointer" }}
+							onClick={() => {
+								projectStore.selectProject(project);
+								setSelectedTask(null);
+								setSelectedProjectPanel(project);
+							}}
+						>
+							{project}
+						</Card>
+					))}
+				</div>
+			</div>
 		);
 	};
 
-	if (!selectedProject) {
+	const renderTasksView = () => {
 		return (
-			<Empty
-				description="Выберите проект слева"
-				style={{ marginTop: 100 }}
+			<TaskBoard
+				onTaskClick={(task) => {
+					setSelectedProjectPanel(null);
+					setSelectedTask(task);
+				}}
 			/>
 		);
-	}
-
-	const columns = taskStore.columns;
+	};
 
 	return (
-		<DragDropContext onDragEnd={onDragEnd}>
-			<div
-				style={{
-					display: "flex",
-					gap: 16,
-					overflowX: "auto",
-					padding: 16,
-					height: "100%",
-				}}
-			>
-				{Object.entries(columns).map(([key, tasks]) => (
-					<Card
-						key={key}
-						title={taskStore.getColumnTitle(key as ColumnType)}
-						style={{
-							flex: 1,
-							minWidth: 250,
-							display: "flex",
-							flexDirection: "column",
-							maxHeight: "calc(100vh - 160px)",
-						}}
-						bodyStyle={{
-							flex: 1,
-							display: "flex",
-							flexDirection: "column",
-							overflow: "hidden",
-						}}
-					>
-						{key === "open" && (
-							<Input
-								placeholder="Новая задача"
-								value={taskStore.newTaskTitle}
-								onChange={(e) =>
-									(taskStore.newTaskTitle = e.target.value)
-								}
-								onPressEnter={() =>
-									taskStore.addTask(key as ColumnType)
-								}
-								style={{ marginBottom: 12 }}
-							/>
-						)}
+		<PageLayout
+			headerLeft={
+				<Typography.Title level={4} style={{ margin: 0 }}>
+					{activeMenuKey === "all-projects" ? "Все проекты" : "Все задачи"}
+				</Typography.Title>
+			}
+			activeMenuKey={activeMenuKey}
+			onMenuSelect={(key) => {
+				setActiveMenuKey(key);
+				setSelectedProjectPanel(null);
+			}}
+		>
+			{activeMenuKey === "all-projects" ? renderProjectsView() : renderTasksView()}
 
-						<Droppable
-							droppableId={key}
-							direction="vertical"
-						>
-							{(provided) => (
-								<div
-									ref={provided.innerRef}
-									{...provided.droppableProps}
-									style={{
-										flex: 1,
-										overflowY: "auto",
-										display: "flex",
-										flexDirection: "column",
-										gap: 12,
-										scrollbarWidth: "none",
-										msOverflowStyle: "none",
-									}}
-								>
-									{tasks.map((task, index) => (
-										<Draggable
-											key={task.id}
-											draggableId={task.id}
-											index={index}
-										>
-											{(provided) => (
-												<div
-													ref={provided.innerRef}
-													{...provided.draggableProps}
-													{...provided.dragHandleProps}
-													style={{
-														...provided
-															.draggableProps
-															.style,
-														transition:
-															"transform 0.2s ease",
-													}}
-												>
-													<Card
-														style={{
-															height: 80,
-															display: "flex",
-															alignItems:
-																"center",
-															justifyContent:
-																"center",
-															cursor: "pointer",
-														}}
-														onClick={() =>
-															onTaskClick?.(task)
-														}
-													>
-														{task.title}
-													</Card>
-												</div>
-											)}
-										</Draggable>
-									))}
-									{provided.placeholder}
-								</div>
-							)}
-						</Droppable>
-					</Card>
-				))}
-			</div>
-		</DragDropContext>
+			<TaskDetailPanel task={selectedTask} onClose={closeTaskPanel} />
+
+			<ProjectDetailPanel
+				projectName={selectedProjectPanel}
+				onClose={closeProjectPanel}
+			/>
+		</PageLayout>
 	);
 });
 
-export default TaskBoard;
+export default Home;
