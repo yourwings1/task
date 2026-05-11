@@ -2,7 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum TypeTask {
-    GIT_LAB = 'GitLab',
-    REDMINE = 'Redmine',
-}
+export const TypeTask = {
+    GIT_LAB: 'GitLab',
+    REDMINE: 'Redmine',
+} as const;
+
+export type TypeTask = typeof TypeTask[keyof typeof TypeTask];

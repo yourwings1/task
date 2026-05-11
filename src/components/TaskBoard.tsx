@@ -1,7 +1,12 @@
 import { Input, Card, Empty } from "antd";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+	DragDropContext,
+	Droppable,
+	Draggable,
+	type DropResult,
+} from "react-beautiful-dnd";
 
 import taskStore, { type ColumnType, type Task } from "../store/TaskStore";
 import projectStore from "../store/ProjectStore";
@@ -19,7 +24,7 @@ const TaskBoard = observer(({ onTaskClick }: TaskBoardProps) => {
 		}
 	}, [selectedProject]);
 
-	const onDragEnd = (result: any) => {
+	const onDragEnd = (result: DropResult) => {
 		const { source, destination } = result;
 		if (!destination) return;
 

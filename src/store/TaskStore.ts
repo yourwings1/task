@@ -16,28 +16,89 @@ import projectStore from "./ProjectStore";
 
 export type ColumnType = "open" | "inProgress" | "review" | "done";
 
+export interface TaskAttachment {
+	id: string;
+	name: string;
+	size: number;
+	type: string;
+	uploadedAt: string;
+	uploadedBy: string;
+	path: string;
+}
+
 export interface Task {
 	id: string;
 	title: string;
 	assignee: string;
+	assigneeId: string;
+	creator: string;
 	project: string;
 	date: string;
+	createdAtIso: string;
 	tags: string[];
+	attachments: TaskAttachment[];
 	description: string;
 	status: ColumnType;
+	priority: string;
+	startDate: string;
+	dueDate: string;
+	completedAt: string;
+	timeEstimate: string;
+	timeSpent: string;
 	order: number;
 }
 
 type TaskDoc = {
 	title: string;
 	assignee: string;
+	assigneeId?: string;
+	creator?: string;
 	project: string;
 	date: string;
+	createdAtIso?: string;
 	tags: string[];
+	attachments?: TaskAttachment[];
 	description: string;
 	status: ColumnType;
+	priority?: string;
+	startDate?: string;
+	dueDate?: string;
+	completedAt?: string;
+	timeEstimate?: string;
+	timeSpent?: string;
 	order: number;
 	createdAt?: Timestamp;
+	updatedAt?: Timestamp;
+};
+
+const notAssigned = "Не назначен";
+const mediumPriority = "Средний";
+
+const createLocalId = () =>
+	`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatSpentTime = (start?: string, finish?: string) => {
+	if (!start || !finish) return "";
+
+	const startMs = Date.parse(start);
+	const finishMs = Date.parse(finish);
+
+	if (Number.isNaN(startMs) || Number.isNaN(finishMs) || finishMs <= startMs) {
+		return "";
+	}
+
+	const minutes = Math.floor((finishMs - startMs) / 60000);
+	const days = Math.floor(minutes / 1440);
+	const hours = Math.floor((minutes % 1440) / 60);
+	const restMinutes = minutes % 60;
+
+	return [
+		days ? `${days}д` : "",
+		hours ? `${hours}ч` : "",
+		restMinutes ? `${restMinutes}м` : "",
+	]
+		.filter(Boolean)
+		.join(" ");
 };
 
 const defaultColumns = (): Record<ColumnType, Task[]> => ({
@@ -126,11 +187,21 @@ class TaskStore {
 					id: docSnap.id,
 					title: data.title,
 					assignee: data.assignee,
+					assigneeId: data.assigneeId ?? data.assignee,
+					creator: data.creator ?? notAssigned,
 					project: data.project,
 					date: data.date,
+					createdAtIso: data.createdAtIso ?? "",
 					tags: data.tags ?? [],
+					attachments: data.attachments ?? [],
 					description: data.description ?? "",
 					status: data.status,
+					priority: data.priority ?? mediumPriority,
+					startDate: data.startDate ?? "",
+					dueDate: data.dueDate ?? data.date ?? "",
+					completedAt: data.completedAt ?? "",
+					timeEstimate: data.timeEstimate ?? "",
+					timeSpent: data.timeSpent ?? "",
 					order: data.order ?? 0,
 				};
 
@@ -164,16 +235,29 @@ class TaskStore {
 			"tasks",
 		);
 
+		const now = new Date();
+
 		await addDoc(tasksRef, {
 			title,
-			assignee: "Не назначен",
+			assignee: notAssigned,
+			assigneeId: "",
+			creator: user.displayName || user.email || user.uid,
 			project,
-			date: new Date().toLocaleDateString(),
-			tags: ["Приоритет 1"],
+			date: now.toLocaleDateString(),
+			createdAtIso: now.toISOString(),
+			tags: [],
+			attachments: [],
 			description: "",
 			status: column,
+			priority: mediumPriority,
+			startDate: now.toISOString(),
+			dueDate: "",
+			completedAt: "",
+			timeEstimate: "",
+			timeSpent: "",
 			order: nextOrder,
 			createdAt: Timestamp.now(),
+			updatedAt: Timestamp.now(),
 		});
 
 		runInAction(() => {
@@ -231,6 +315,7 @@ class TaskStore {
 				batch.update(taskRef, {
 					order: index,
 					status: item.status,
+					updatedAt: Timestamp.now(),
 				});
 			});
 		} else {
@@ -248,6 +333,7 @@ class TaskStore {
 				batch.update(taskRef, {
 					order: index,
 					status: item.status,
+					updatedAt: Timestamp.now(),
 				});
 			});
 
@@ -265,11 +351,27 @@ class TaskStore {
 				batch.update(taskRef, {
 					order: index,
 					status: item.status,
+					...(item.id === task.id
+						? this.getClosingUpdates(task, toColumn)
+						: {}),
+					updatedAt: Timestamp.now(),
 				});
 			});
 		}
 
 		await batch.commit();
+	}
+
+	private getClosingUpdates(task: Task, nextStatus: ColumnType) {
+		if (task.status === "done" || nextStatus !== "done") return {};
+
+		const completedAt = new Date().toISOString();
+		const startDate = task.startDate || task.createdAtIso || completedAt;
+
+		return {
+			completedAt,
+			timeSpent: formatSpentTime(startDate, completedAt),
+		};
 	}
 
 	async moveTaskToColumn(task: Task, newColumn: ColumnType) {
@@ -286,6 +388,8 @@ class TaskStore {
 			{
 				status: newColumn,
 				order: newOrder,
+				...this.getClosingUpdates(task, newColumn),
+				updatedAt: Timestamp.now(),
 			},
 		);
 	}
@@ -311,10 +415,54 @@ class TaskStore {
 
 		if (!user || !project || !projectId) return;
 
+		const currentTask = this.findTaskById(taskId);
+		const nextStatus = updates.status ?? currentTask?.status;
+		const closingUpdates =
+			currentTask && nextStatus
+				? this.getClosingUpdates(currentTask, nextStatus)
+				: {};
+
 		await updateDoc(
 			doc(db, "users", user.uid, "projects", projectId, "tasks", taskId),
-			updates,
+			{
+				...updates,
+				...closingUpdates,
+				updatedAt: Timestamp.now(),
+			},
 		);
+	}
+
+	async addAttachment(taskId: string, file: File) {
+		const user = auth.currentUser;
+		const task = this.findTaskById(taskId);
+
+		if (!user || !task) return;
+
+		const attachment: TaskAttachment = {
+			id: createLocalId(),
+			name: file.name,
+			size: file.size,
+			type: file.type || "application/octet-stream",
+			uploadedAt: new Date().toISOString(),
+			uploadedBy: user.uid,
+			path: "",
+		};
+
+		await this.updateTask(taskId, {
+			attachments: [...task.attachments, attachment],
+		});
+	}
+
+	async removeAttachment(taskId: string, attachmentId: string) {
+		const task = this.findTaskById(taskId);
+
+		if (!task) return;
+
+		await this.updateTask(taskId, {
+			attachments: task.attachments.filter(
+				(attachment) => attachment.id !== attachmentId,
+			),
+		});
 	}
 
 	async removeTask(taskId: string) {
