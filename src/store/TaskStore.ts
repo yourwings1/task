@@ -77,25 +77,41 @@ const mediumPriority = "Средний";
 const createLocalId = () =>
 	`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-const formatSpentTime = (start?: string, finish?: string) => {
-	if (!start || !finish) return "";
+const getDateMs = (value?: string) => {
+	if (!value) return Number.NaN;
 
-	const startMs = Date.parse(start);
-	const finishMs = Date.parse(finish);
+	const parsed = Date.parse(value);
+	if (!Number.isNaN(parsed)) return parsed;
+
+	const match = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+	if (!match) return Number.NaN;
+
+	const [, day, month, year] = match;
+	return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+};
+
+const getTaskStartDate = (task: Task) =>
+	task.startDate || task.createdAtIso || task.date;
+
+export const formatSpentTime = (start?: string, finish?: string) => {
+	const startMs = getDateMs(start);
+	const finishMs = getDateMs(finish);
 
 	if (Number.isNaN(startMs) || Number.isNaN(finishMs) || finishMs <= startMs) {
 		return "";
 	}
 
 	const minutes = Math.floor((finishMs - startMs) / 60000);
+	if (minutes < 1) return "меньше минуты";
+
 	const days = Math.floor(minutes / 1440);
 	const hours = Math.floor((minutes % 1440) / 60);
 	const restMinutes = minutes % 60;
 
 	return [
-		days ? `${days}д` : "",
-		hours ? `${hours}ч` : "",
-		restMinutes ? `${restMinutes}м` : "",
+		days ? `${days} д` : "",
+		hours ? `${hours} ч` : "",
+		restMinutes ? `${restMinutes} мин` : "",
 	]
 		.filter(Boolean)
 		.join(" ");
@@ -363,14 +379,17 @@ class TaskStore {
 	}
 
 	private getClosingUpdates(task: Task, nextStatus: ColumnType) {
-		if (task.status === "done" || nextStatus !== "done") return {};
+		if (nextStatus !== "done") return {};
 
-		const completedAt = new Date().toISOString();
-		const startDate = task.startDate || task.createdAtIso || completedAt;
+		const completedAt = task.completedAt || new Date().toISOString();
+		const timeSpent = task.timeSpent || formatSpentTime(
+			getTaskStartDate(task),
+			completedAt,
+		);
 
 		return {
 			completedAt,
-			timeSpent: formatSpentTime(startDate, completedAt),
+			timeSpent,
 		};
 	}
 

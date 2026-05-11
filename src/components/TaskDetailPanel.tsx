@@ -31,7 +31,7 @@ import {
 import { Link } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type { ColumnType, Task } from "../store/TaskStore";
-import taskStore from "../store/TaskStore";
+import taskStore, { formatSpentTime } from "../store/TaskStore";
 import projectStore from "../store/ProjectStore";
 
 interface Props {
@@ -46,6 +46,31 @@ const formatAttachmentSize = (size: number) => {
 	if (size < 1024) return `${size} Б`;
 	if (size < 1024 * 1024) return `${Math.round(size / 1024)} КБ`;
 	return `${(size / 1024 / 1024).toFixed(1)} МБ`;
+};
+
+const formatDateTime = (value: string) => {
+	if (!value) return "";
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return value;
+
+	return new Intl.DateTimeFormat("ru-RU", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(date);
+};
+
+const getDisplayedSpentTime = (task: Task) => {
+	if (task.timeSpent) return task.timeSpent;
+	if (task.status !== "done") return "Посчитается при закрытии";
+
+	return (
+		formatSpentTime(task.startDate || task.createdAtIso || task.date, task.completedAt) ||
+		"Не удалось посчитать"
+	);
 };
 
 const TaskDetailPanel: FC<Props> = observer(({ task, onClose }) => {
@@ -278,7 +303,11 @@ const TaskDetailPanel: FC<Props> = observer(({ task, onClose }) => {
 						<Col span={8} style={{ color: "#888" }}>
 							<CalendarOutlined /> Фактическое окончание
 						</Col>
-						<Col span={16}>{currentTask.completedAt || "Пока не закрыта"}</Col>
+						<Col span={16}>
+							{currentTask.completedAt
+								? formatDateTime(currentTask.completedAt)
+								: "Пока не закрыта"}
+						</Col>
 
 						<Col span={8} style={{ color: "#888" }}>
 							<CalendarOutlined /> Оценка времени
@@ -296,7 +325,7 @@ const TaskDetailPanel: FC<Props> = observer(({ task, onClose }) => {
 						<Col span={8} style={{ color: "#888" }}>
 							<CalendarOutlined /> Затрачено
 						</Col>
-						<Col span={16}>{currentTask.timeSpent || "Посчитается при закрытии"}</Col>
+						<Col span={16}>{getDisplayedSpentTime(currentTask)}</Col>
 					</Row>
 
 					{editedTags.length > 0 && (
